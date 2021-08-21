@@ -1,12 +1,3 @@
-async function totalPoke(limit, of) {
-  const pokes = await fetch(
-    `https://pokeapi.co/api/v2/ability/?limit=${limit}&offset=${of}`
-  );
-
-  const parsePokes = await pokes.json();
-
-  return parsePokes.results;
-}
 let containerPokes = document.querySelector(".pokes");
 class Pagination {
   constructor(pages, pageSelect = 1, totalItems = 103, limitePage = 4) {
@@ -14,10 +5,36 @@ class Pagination {
     this.pageSelect = pageSelect;
     this.totalItems = totalItems;
     this.limitePage = limitePage;
+    this.map = new Map();
 
     this.construirPaginas();
   }
+  async totalPoke(limit, of) {
+    const pokes = await fetch(
+      `https://pokeapi.co/api/v2/ability/?limit=${limit}&offset=${of}`
+    );
 
+    const parsePokes = await pokes.json();
+
+    let el = this.map.get(limit + of);
+    if (!el) {
+      this.map.set(limit + of, parsePokes.results);
+      let results = this.map.get(limit + of);
+      return results;
+    }
+
+    return el;
+  }
+  loader(isLoader) {
+    let loaderElement = document.querySelector(".loader");
+    if (isLoader) {
+      loaderElement.classList.add("ativo");
+      return true;
+    }
+
+    loaderElement.classList.remove("ativo");
+    return false;
+  }
   construirPaginas() {
     this.pages = !(this.totalItems % this.limitePage)
       ? Math.floor(this.totalItems / this.limitePage)
@@ -111,11 +128,14 @@ class Pagination {
   }
   async pageSelectConstrutor(index) {
     this.pageSelect = index;
-
+    containerPokes.innerHTML = "";
+    this.loader(true);
     let pages = this.construirPaginas();
-    let itens = await totalPoke(pages, index);
+    let itens = await this.totalPoke(pages, index);
     let pokesTemplate = this.renderPoke(itens);
     containerPokes.innerHTML = pokesTemplate;
+    this.loader(false);
+
     return this.construirDom(index);
   }
 }
